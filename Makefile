@@ -1,21 +1,18 @@
-# Makefile
+CC = gcc
+CFLAGS = -Wall -Werror -g
 
-CC := $(CROSS_COMPILE)gcc
-CFLAGS := -Wall -Werror -g
-TARGET := writer
-SRC := finder-app/writer.c
-OBJ := writer.o
+WRITER_SRC = finder-app/writer.c
+WRITER_OBJ = writer.o
+WRITER_BIN = finder-app/writer
 
-.PHONY: all clean
+all: $(WRITER_BIN)
 
-all: $(TARGET)
+$(WRITER_BIN): $(WRITER_OBJ)
+	$(CC) $(CFLAGS) -o $@ $^
 
-$(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o finder-app/$(TARGET) $(OBJ)
-
-$(OBJ): $(SRC)
-	$(CC) $(CFLAGS) -c -o $(OBJ) $(SRC)
+$(WRITER_OBJ): $(WRITER_SRC)
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f $(OBJ) finder-app/$(TARGET)
+	rm -f $(WRITER_BIN) $(WRITER_OBJ)
 

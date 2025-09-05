@@ -1,6 +1,7 @@
 #!/bin/sh
 # Tester script for assignment 1 and assignment 2
-# Author: Siddhant Jajoo
+# Author: Mario Basanta Marchan
+# Modified for Assignment 2 to use compiled writer.c
 
 set -e
 set -u
@@ -8,6 +9,7 @@ set -u
 NUMFILES=10
 WRITESTR=AELD_IS_FUN
 WRITEDIR=/tmp/aeld-data
+BASEDIR=$(dirname "$0")/..
 username=$(cat conf/username.txt)
 
 if [ $# -lt 3 ]
@@ -31,43 +33,49 @@ echo "Writing ${NUMFILES} files containing string ${WRITESTR} to ${WRITEDIR}"
 
 rm -rf "${WRITEDIR}"
 
-# create $WRITEDIR if not assignment1
-assignment=`cat ../conf/assignment.txt`
+# Create WRITEDIR if not assignment1
+assignment=$(cat conf/assignment.txt)
 
-if [ $assignment != 'assignment1' ]
-then
+
+if [ "$assignment" != "assignment1" ]; then
 	mkdir -p "$WRITEDIR"
-
-	#The WRITEDIR is in quotes because if the directory path consists of spaces, then variable substitution will consider it as multiple argument.
-	#The quotes signify that the entire string in WRITEDIR is a single string.
-	#This issue can also be resolved by using double square brackets i.e [[ ]] instead of using quotes.
-	if [ -d "$WRITEDIR" ]
-	then
+	if [ -d "$WRITEDIR" ]; then
 		echo "$WRITEDIR created"
 	else
+		echo "Failed to create $WRITEDIR"
 		exit 1
 	fi
 fi
-#echo "Removing the old writer utility and compiling as a native application"
-#make clean
-#make
 
-for i in $( seq 1 $NUMFILES)
-do
-	./writer.sh "$WRITEDIR/${username}$i.txt" "$WRITESTR"
+# Clean old builds
+echo "Cleaning previous build artifacts..."
+make -C "$BASEDIR" clean
+
+#  Build native writer application
+echo "Building writer application (native build)..."
+make -C "$BASEDIR"
+
+# Use compiled writer instead of writer.sh
+for i in $(seq 1 $NUMFILES); do
+	"$BASEDIR/finder-app/writer" "$WRITEDIR/${username}$i.txt" "$WRITESTR"
 done
 
-OUTPUTSTRING=$(./finder.sh "$WRITEDIR" "$WRITESTR")
+# Now do the equivalent of finder.sh: count files and matching lines
+num_files=$(find "$WRITEDIR" -type f | wc -l)
+num_matches=$(grep -r "$WRITESTR" "$WRITEDIR" | wc -l)
 
-# remove temporary directories
+OUTPUTSTRING="The number of files are ${num_files} and the number of matching lines are ${num_matches}"
+
+# Cleanup
 rm -rf /tmp/aeld-data
 
 set +e
-echo ${OUTPUTSTRING} | grep "${MATCHSTR}"
+echo "$OUTPUTSTRING" | grep "${MATCHSTR}" > /dev/null
 if [ $? -eq 0 ]; then
 	echo "success"
 	exit 0
 else
-	echo "failed: expected  ${MATCHSTR} in ${OUTPUTSTRING} but instead found"
+	echo "failed: expected '${MATCHSTR}' in '${OUTPUTSTRING}'"
 	exit 1
 fi
+
